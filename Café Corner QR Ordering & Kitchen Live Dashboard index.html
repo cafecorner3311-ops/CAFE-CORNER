@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Café Corner (@THECAFECORNER_) — QR Food Ordering & Kitchen Live</title>
+
+  <!-- Google Fonts: Vintage Serif + Clean Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            cafe: {
+              cream: '#FBF6EE',
+              parchment: '#F3E8D8',
+              latte: '#E6D5BC',
+              espresso: '#2C1A12',
+              roast: '#4A2E1B',
+              amber: '#C85A17',
+              gold: '#B45309',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- QRCode.js CDN for Scannable Table & Kitchen QR Codes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    body {
+      background-color: #FBF6EE;
+      color: #2C1A12;
+      -webkit-tap-highlight-color: transparent;
+      background-image: radial-gradient(rgba(74, 46, 27, 0.045) 1px, transparent 0);
+      background-size: 20px 20px;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      70% { transform: scale(1.2); opacity: 0; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+    .pulse-ring::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 9999px;
+      border: 2px solid #EF4444;
+      animation: pulseRing 1.6s infinite;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-amber-200 selection:text-cafe-espresso">
+
+  <!-- Toast Notification Container (Replaces alert/confirm) -->
+  <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-11/12 max-w-md pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- TOP STICKY HEADER (ADAPTS STRICTLY TO CUSTOMER VS KITCHEN ROUTE)      -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-40 bg-cafe-espresso text-cafe-cream shadow-lg border-b-2 border-amber-700/40">
+    <div class="max-w-5xl mx-auto px-3 sm:px-6 py-3">
+      <div class="flex items-center justify-between gap-2">
+        <!-- Brand Identity -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-10 h-10 rounded-full bg-cafe-cream text-cafe-espresso flex items-center justify-center shadow-inner border-2 border-amber-500 shrink-0">
+            <!-- Coffee Cup SVG -->
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
+              <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path>
+              <line x1="6" y1="2" x2="6" y2="4"></line>
+              <line x1="10" y1="2" x2="10" y2="4"></line>
+              <line x1="14" y1="2" x2="14" y2="4"></line>
+            </svg>
+          </div>
+          <div class="truncate">
+            <div class="flex items-center gap-1.5">
+              <h1 class="font-serif font-bold text-lg sm:text-xl tracking-wide leading-none text-amber-100 truncate">CAFÉ Corner</h1>
+              <span id="sync-dot" title="Sync Status" class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+            </div>
+            <p id="header-subtitle" class="text-[11px] text-amber-300/90 italic tracking-wider mt-0.5 truncate">Good Food, Good Mood • @THECAFECORNER_</p>
+          </div>
+        </div>
+
+        <!-- CUSTOMER HEADER CONTROLS (NO KITCHEN LINKS OR BUTTONS) -->
+        <div id="customer-header-controls" class="flex items-center gap-1.5 bg-cafe-roast/80 px-2.5 py-1.5 rounded-xl border border-amber-600/40 shrink-0">
+          <span class="text-xs text-amber-200 font-medium hidden sm:inline">Table:</span>
+          <select id="header-table-select" aria-label="Select Table" class="bg-cafe-espresso text-amber-300 font-extrabold text-xs rounded-lg px-2 py-1 border border-amber-500/50 focus:outline-none focus:border-amber-400">
+            <option value="Table 1">Table 1</option>
+            <option value="Table 2">Table 2</option>
+            <option value="Table 3">Table 3</option>
+            <option value="Table 4">Table 4</option>
+            <option value="Table 5">Table 5</option>
+            <option value="Table 6">Table 6</option>
+            <option value="Table 7">Table 7</option>
+            <option value="Table 8">Table 8</option>
+            <option value="Table 9">Table 9</option>
+            <option value="Table 10">Table 10</option>
+            <option value="Table 11">Table 11</option>
+            <option value="Table 12">Table 12</option>
+            <option value="Takeaway">Takeaway</option>
+          </select>
+        </div>
+
+        <!-- KITCHEN HEADER CONTROLS (ONLY SHOWN ON /?view=kitchen) -->
+        <div id="kitchen-header-controls" class="hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <span id="kitchen-active-pill" class="hidden px-2.5 py-1 rounded-full bg-red-600 text-white text-xs font-extrabold">0 New</span>
+          <button id="btn-open-cloud" class="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-cafe-roast hover:bg-amber-900 text-amber-200 text-xs font-bold border border-amber-600/40 transition active:scale-95" title="Configure Cross-Phone Cloud Sync">
+            <span>☁️</span>
+            <span class="hidden sm:inline">Cloud Sync</span>
+          </button>
+          <button id="btn-open-qr" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow transition active:scale-95">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+              <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 20h2v1h-2zM20 14h1v2h-1z"></path>
+            </svg>
+            <span>QR & Links</span>
+          </button>
+          <button id="btn-lock-kitchen" title="Lock Kitchen Screen" class="px-2.5 py-2 rounded-xl bg-cafe-roast hover:bg-amber-900 text-amber-200 text-xs font-bold border border-amber-700/50 transition">
+            🔒
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: CUSTOMER ORDERING INTERFACE (DEFAULT: / or /?table=1)         -->
+  <!-- ===================================================================== -->
+  <main id="view-customer" class="flex-1 max-w-5xl w-full mx-auto pb-32">
+
+    <!-- Vintage Café Banner -->
+    <section class="px-3 sm:px-6 pt-4">
+      <div class="bg-gradient-to-r from-cafe-espresso via-cafe-roast to-cafe-espresso rounded-2xl p-4 sm:p-5 text-cafe-cream border-2 border-amber-600/40 shadow-md relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-1.5">
+              <span>✨ Freshly Prepared to Order</span>
+            </div>
+            <h2 class="font-serif text-xl sm:text-2xl font-bold text-amber-50">Welcome to Café Corner</h2>
+            <p class="text-xs sm:text-sm text-amber-200/85 mt-0.5">Browse all 23 categories, customize sizes or Extra Cheese (+₹29), and send directly to our kitchen.</p>
+          </div>
+          <div class="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <span id="customer-table-badge" class="px-3.5 py-1.5 rounded-xl bg-amber-500 text-cafe-espresso font-extrabold text-xs shadow">
+              📍 Table 1
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Order Tracker for Customer's Table (Shown when table has active orders) -->
+    <section id="customer-live-tracker" class="hidden px-3 sm:px-6 pt-4">
+      <div class="bg-white rounded-2xl border-2 border-amber-500/50 p-3.5 sm:p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="relative inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <h3 class="font-serif font-bold text-sm sm:text-base text-cafe-espresso">Live Kitchen Status (<span id="tracker-table-label">Table 1</span>)</h3>
+          </div>
+          <span class="text-[11px] font-semibold text-cafe-roast/75">Auto-updating</span>
+        </div>
+        <div id="customer-orders-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+      </div>
+    </section>
+
+    <!-- Sticky Search, Veg/Non-Veg Filter & Horizontal Category Pills -->
+    <div class="sticky top-[64px] z-30 bg-cafe-cream/95 backdrop-blur-md border-b border-cafe-latte px-3 sm:px-6 py-3 mt-3 shadow-xs">
+      <!-- Search & Diet Filter Row -->
+      <div class="flex flex-col sm:flex-row gap-2 mb-2.5">
+        <div class="relative flex-1">
+          <svg class="w-4 h-4 text-cafe-roast/60 absolute left-3.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="menu-search" type="text" placeholder="Search fries, pizza, momos, chicken 65, mojito, shake..."
+            class="w-full pl-10 pr-8 py-2 rounded-xl bg-white border border-cafe-latte text-sm text-cafe-espresso placeholder:text-cafe-roast/50 focus:outline-none focus:border-amber-600 shadow-2xs" />
+          <button id="btn-clear-search" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-cafe-roast/60 hover:text-cafe-espresso px-1.5 py-0.5">✕</button>
+        </div>
+
+        <!-- Diet Filter Buttons -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button data-diet="all" class="diet-btn active flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-extrabold border transition bg-cafe-espresso text-amber-200 border-cafe-espresso">
+            All
+          </button>
+          <button data-diet="veg" class="diet-btn flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-extrabold border transition bg-white text-emerald-800 border-cafe-latte hover:bg-emerald-50 flex items-center justify-center gap-1.5">
+            <span class="w-3 h-3 rounded-xs border-2 border-emerald-600 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span></span>
+            <span>Veg</span>
+          </button>
+          <button data-diet="nonveg" class="diet-btn flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-extrabold border transition bg-white text-red-800 border-cafe-latte hover:bg-red-50 flex items-center justify-center gap-1.5">
+            <span class="w-3 h-3 rounded-xs border-2 border-red-600 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-red-600"></span></span>
+            <span>Non-Veg</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Horizontal Category Pills -->
+      <div id="category-pills" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5"></div>
+    </div>
+
+    <!-- Menu Items Sections -->
+    <section id="menu-container" class="px-3 sm:px-6 pt-4 space-y-6"></section>
+
+    <!-- Empty Menu Search State -->
+    <div id="menu-empty-state" class="hidden text-center py-16 px-4">
+      <div class="text-4xl mb-2">🍽️</div>
+      <h3 class="font-serif font-bold text-lg text-cafe-espresso">No dishes matched your filter</h3>
+      <p class="text-xs text-cafe-roast/75 mt-1">Try clearing the search bar or switching back to "All" items.</p>
+      <button id="btn-reset-filters" class="mt-3 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold shadow">Reset Filters</button>
+    </div>
+
+    <!-- Footer Tagline -->
+    <footer class="mt-10 px-4 text-center text-xs text-cafe-roast/75 space-y-1">
+      <p class="font-serif italic text-base text-cafe-espresso font-semibold">~ Good Food, Good Mood ~</p>
+      <p>Follow us on Instagram <span class="font-bold text-amber-800">@THECAFECORNER_</span></p>
+    </footer>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: KITCHEN LIVE DASHBOARD (ONLY ON /?view=kitchen or #kitchen)   -->
+  <!-- ===================================================================== -->
+  <main id="view-kitchen" class="hidden flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 pb-16">
+
+    <!-- Staff 4-Digit PIN Lock Gate -->
+    <div id="kitchen-pin-gate" class="max-w-sm mx-auto my-8 bg-white rounded-3xl p-6 border-2 border-amber-500/50 shadow-xl text-center space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-cafe-espresso text-amber-400 flex items-center justify-center mx-auto text-2xl shadow">
+        👨‍🍳
+      </div>
+      <div>
+        <h2 class="font-serif font-bold text-xl text-cafe-espresso">Kitchen Staff Access</h2>
+        <p class="text-xs text-cafe-roast/80 mt-1">Enter 4-digit kitchen PIN to manage incoming customer orders.</p>
+      </div>
+      <div class="space-y-2">
+        <input id="kitchen-pin-input" type="password" inputmode="numeric" maxlength="4" placeholder="••••"
+          class="w-full text-center tracking-[0.6em] font-extrabold text-2xl py-3 rounded-2xl bg-cafe-cream border-2 border-cafe-latte text-cafe-espresso focus:outline-none focus:border-amber-600" />
+        <p id="kitchen-pin-error" class="hidden text-xs font-bold text-red-600">Incorrect PIN. Default is 1234.</p>
+      </div>
+      <div class="space-y-2">
+        <button id="btn-unlock-kitchen" class="w-full py-3 rounded-xl bg-cafe-espresso hover:bg-cafe-roast text-amber-300 font-extrabold text-sm shadow transition active:scale-98">
+          Unlock Kitchen Dashboard
+        </button>
+        <button id="btn-demo-unlock" class="w-full py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs border border-amber-300 transition">
+          ⚡ Quick Demo Unlock (PIN: 1234)
+        </button>
+      </div>
+      <div class="pt-2 border-t border-cafe-parchment flex items-center justify-between text-[11px] text-cafe-roast/75">
+        <span>Staff PIN: <strong class="text-cafe-espresso">1234</strong></span>
+        <a href="?" class="text-amber-800 font-bold hover:underline">← Open Customer Menu</a>
+      </div>
+    </div>
+
+    <!-- Unlocked Kitchen Live Workspace -->
+    <div id="kitchen-workspace" class="hidden space-y-4">
+      <!-- Top Kitchen Stats & Controls Bar -->
+      <div class="bg-white rounded-2xl p-4 border border-cafe-latte shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-serif font-bold text-xl text-cafe-espresso">Live Kitchen Order Board</h2>
+              <span id="cloud-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                ● Live Sync Ready
+              </span>
+            </div>
+            <p class="text-xs text-cafe-roast/75 mt-0.5">Orders from customer phones appear automatically with sound alert.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-toggle-sound" class="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition">
+              <span>🔔 Sound: ON</span>
+            </button>
+            <button id="btn-test-order" class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-bold transition">
+              + Test Order
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Filter Tabs -->
+        <div class="grid grid-cols-4 gap-1.5 mt-4 pt-3 border-t border-cafe-parchment">
+          <button data-ktab="new" class="ktab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-red-600 text-white shadow-xs transition">
+            New (<span id="count-new">0</span>)
+          </button>
+          <button data-ktab="preparing" class="ktab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-cafe-cream text-cafe-espresso border border-cafe-latte transition">
+            Preparing (<span id="count-preparing">0</span>)
+          </button>
+          <button data-ktab="ready" class="ktab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-cafe-cream text-cafe-espresso border border-cafe-latte transition">
+            Ready (<span id="count-ready">0</span>)
+          </button>
+          <button data-ktab="served" class="ktab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-cafe-cream text-cafe-espresso border border-cafe-latte transition">
+            Served (<span id="count-served">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Kitchen Orders Grid -->
+      <div id="kitchen-orders-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
+
+      <!-- Empty Kitchen Tab State -->
+      <div id="kitchen-empty-state" class="text-center py-14 px-4 bg-white/80 rounded-2xl border border-dashed border-cafe-latte">
+        <div class="text-4xl mb-2">👨‍🍳</div>
+        <h3 class="font-serif font-bold text-lg text-cafe-espresso">No orders in this status</h3>
+        <p class="text-xs text-cafe-roast/75 max-w-md mx-auto mt-1">
+          Share your Table QR codes via <strong>QR & Links</strong> above or tap <strong>+ Test Order</strong> to preview a live incoming ticket.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- STICKY FLOATING CART BAR (CUSTOMER VIEW ONLY)                         -->
+  <!-- ===================================================================== -->
+  <div id="floating-cart-bar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-11/12 max-w-xl">
+    <button id="btn-open-cart" class="w-full bg-cafe-espresso hover:bg-cafe-roast text-cafe-cream rounded-2xl px-4 py-3.5 shadow-2xl border-2 border-amber-500/70 flex items-center justify-between transition active:scale-98">
+      <div class="flex items-center gap-3">
+        <span id="cart-bar-count" class="w-8 h-8 rounded-xl bg-amber-500 text-cafe-espresso font-extrabold text-sm flex items-center justify-center">0</span>
+        <div class="text-left">
+          <div class="text-xs text-amber-300 font-bold" id="cart-bar-table">Table 1</div>
+          <div class="text-sm font-extrabold text-white">Total: ₹<span id="cart-bar-total">0</span></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 bg-amber-600 px-3.5 py-2 rounded-xl text-xs font-extrabold text-white">
+        <span>View Cart & Order</span>
+        <span>→</span>
+      </div>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- ITEM CUSTOMIZATION MODAL (SIZE / PCS / EXTRA CHEESE +₹29)             -->
+  <!-- ===================================================================== -->
+  <div id="item-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-cafe-cream w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border-2 border-amber-500/50 overflow-hidden">
+      <div class="bg-cafe-espresso text-cafe-cream px-5 py-4 flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modal-veg-badge" class="w-3.5 h-3.5 rounded-xs border-2 border-emerald-500 flex items-center justify-center bg-white">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            </span>
+            <h3 id="modal-item-name" class="font-serif font-bold text-lg text-amber-100">Item Name</h3>
+          </div>
+          <p id="modal-item-category" class="text-[11px] text-amber-300/80 mt-0.5">Category</p>
+        </div>
+        <button id="btn-close-item-modal" class="w-8 h-8 rounded-full bg-cafe-roast text-amber-100 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <!-- Variant / Size Selector -->
+        <div>
+          <label class="block text-xs font-extrabold uppercase tracking-wider text-cafe-roast mb-2">Choose Portion / Size</label>
+          <div id="modal-variants-list" class="grid grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- Optional Extra Cheese (+₹29) for Pizzas, Burgers, Sandwiches -->
+        <div id="modal-cheese-section" class="hidden bg-amber-50 border border-amber-300 rounded-2xl p-3">
+          <label class="flex items-center justify-between cursor-pointer">
+            <div class="flex items-center gap-2.5">
+              <input id="modal-cheese-checkbox" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
+              <div>
+                <div class="text-xs font-extrabold text-cafe-espresso">🧀 Add Extra Cheese</div>
+                <div class="text-[11px] text-cafe-roast/75">Melted mozzarella topping</div>
+              </div>
+            </div>
+            <span class="text-xs font-extrabold text-amber-800">+ ₹29</span>
+          </label>
+        </div>
+
+        <!-- Quantity & Add Button -->
+        <div class="flex items-center justify-between gap-3 pt-2">
+          <div class="flex items-center bg-white border border-cafe-latte rounded-xl overflow-hidden">
+            <button id="btn-modal-minus" class="w-10 h-10 font-extrabold text-lg text-cafe-espresso hover:bg-cafe-parchment">−</button>
+            <span id="modal-qty-val" class="w-9 text-center font-extrabold text-sm">1</span>
+            <button id="btn-modal-plus" class="w-10 h-10 font-extrabold text-lg text-cafe-espresso hover:bg-cafe-parchment">+</button>
+          </div>
+          <button id="btn-modal-add" class="flex-1 py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm shadow transition">
+            Add to Cart • ₹<span id="modal-total-price">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CART & CHECKOUT MODAL (CUSTOMER VIEW)                                 -->
+  <!-- ===================================================================== -->
+  <div id="cart-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-cafe-cream w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border-2 border-amber-500/50 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-cafe-espresso text-cafe-cream px-5 py-4 flex items-center justify-between shrink-0">
+        <div>
+          <h3 class="font-serif font-bold text-lg text-amber-100">Your Order Cart</h3>
+          <p class="text-[11px] text-amber-300/80">Review items before sending to kitchen</p>
+        </div>
+        <button id="btn-close-cart" class="w-8 h-8 rounded-full bg-cafe-roast text-amber-100 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- Cart Items Container -->
+        <div id="cart-items-list" class="space-y-2.5"></div>
+
+        <!-- Customer Details Form -->
+        <div class="bg-white rounded-2xl p-3.5 border border-cafe-latte space-y-3">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-bold text-cafe-roast mb-1">Table / Dining</label>
+              <select id="checkout-table-select" class="w-full rounded-xl bg-cafe-cream border border-cafe-latte px-2.5 py-2 text-xs font-extrabold text-cafe-espresso">
+                <option value="Table 1">Table 1</option>
+                <option value="Table 2">Table 2</option>
+                <option value="Table 3">Table 3</option>
+                <option value="Table 4">Table 4</option>
+                <option value="Table 5">Table 5</option>
+                <option value="Table 6">Table 6</option>
+                <option value="Table 7">Table 7</option>
+                <option value="Table 8">Table 8</option>
+                <option value="Table 9">Table 9</option>
+                <option value="Table 10">Table 10</option>
+                <option value="Table 11">Table 11</option>
+                <option value="Table 12">Table 12</option>
+                <option value="Takeaway">Takeaway</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-cafe-roast mb-1">Your Name (Optional)</label>
+              <input id="checkout-customer-name" type="text" placeholder="e.g. Rahul"
+                class="w-full rounded-xl bg-cafe-cream border border-cafe-latte px-2.5 py-2 text-xs text-cafe-espresso focus:outline-none focus:border-amber-600" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-cafe-roast mb-1">Cooking Instructions (Optional)</label>
+            <input id="checkout-notes" type="text" placeholder="e.g. Less spicy, extra mayo, serve hot..."
+              class="w-full rounded-xl bg-cafe-cream border border-cafe-latte px-2.5 py-2 text-xs text-cafe-espresso focus:outline-none focus:border-amber-600" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Place Order Footer -->
+      <div class="bg-white border-t border-cafe-latte px-5 py-4 shrink-0 space-y-2.5">
+        <div class="flex items-center justify-between text-sm font-extrabold text-cafe-espresso">
+          <span>Grand Total</span>
+          <span class="text-lg text-amber-800">₹<span id="checkout-grand-total">0</span></span>
+        </div>
+        <button id="btn-place-order" class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg transition active:scale-98">
+          🚀 Send Order to Kitchen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TABLE QR CODE & SEPARATE LINKS MODAL (KITCHEN STAFF ONLY)             -->
+  <!-- ===================================================================== -->
+  <div id="qr-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-cafe-cream w-full max-w-md rounded-3xl shadow-2xl border-2 border-amber-500/50 overflow-hidden">
+      <div class="bg-cafe-espresso text-cafe-cream px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="font-serif font-bold text-lg text-amber-100">Table QR Codes & Staff Links</h3>
+          <p class="text-[11px] text-amber-300/80">Separate links for Customer Phones vs. Kitchen Mobile</p>
+        </div>
+        <button id="btn-close-qr" class="w-8 h-8 rounded-full bg-cafe-roast text-amber-100 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4 max-h-[82vh] overflow-y-auto">
+        <!-- Customer Table QR Generator -->
+        <div class="bg-white rounded-2xl p-4 border border-cafe-latte text-center space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <label for="qr-table-select" class="text-xs font-extrabold uppercase tracking-wider text-cafe-roast">1. Customer Table QR</label>
+            <select id="qr-table-select" class="rounded-xl bg-cafe-cream border border-cafe-latte px-3 py-1.5 text-xs font-bold text-cafe-espresso">
+              <option value="1">Table 1 (?table=1)</option>
+              <option value="2">Table 2 (?table=2)</option>
+              <option value="3">Table 3 (?table=3)</option>
+              <option value="4">Table 4 (?table=4)</option>
+              <option value="5">Table 5 (?table=5)</option>
+              <option value="6">Table 6 (?table=6)</option>
+              <option value="7">Table 7 (?table=7)</option>
+              <option value="8">Table 8 (?table=8)</option>
+              <option value="9">Table 9 (?table=9)</option>
+              <option value="10">Table 10 (?table=10)</option>
+              <option value="11">Table 11 (?table=11)</option>
+              <option value="12">Table 12 (?table=12)</option>
+              <option value="Takeaway">Takeaway (?table=Takeaway)</option>
+            </select>
+          </div>
+
+          <div class="bg-cafe-cream/70 p-3.5 rounded-2xl border-2 border-dashed border-amber-500/60 inline-flex flex-col items-center justify-center mx-auto">
+            <div id="qrcode-box" class="flex items-center justify-center bg-white p-2 rounded-xl"></div>
+            <span id="qr-table-badge" class="mt-2 px-3 py-0.5 rounded-full bg-cafe-espresso text-amber-300 text-xs font-extrabold">TABLE 1</span>
+          </div>
+
+          <p class="text-[11px] text-cafe-roast/80">
+            Scanning this QR opens the Customer Ordering Menu for that table (automatically includes Cloud Sync URL if configured).
+          </p>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-copy-customer-link" class="py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow transition">
+              📋 Copy Customer Link
+            </button>
+            <a id="btn-open-customer-preview" href="?table=1" target="_blank" rel="noopener" class="py-2.5 px-3 rounded-xl bg-cafe-parchment hover:bg-cafe-latte text-cafe-espresso text-xs font-bold border border-cafe-latte transition flex items-center justify-center">
+              ↗ Open Customer View
+            </a>
+          </div>
+        </div>
+
+        <!-- Dedicated Kitchen Dashboard Link -->
+        <div class="bg-amber-50 rounded-2xl p-4 border border-amber-300 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-amber-950">2. Kitchen Second Mobile Link</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">PIN: 1234</span>
+          </div>
+          <p class="text-[11px] text-amber-900/80">
+            Open this URL on the restaurant's kitchen phone/tablet to receive live customer orders:
+          </p>
+          <div class="flex items-center gap-2">
+            <input id="kitchen-share-url" type="text" readonly class="flex-1 bg-white border border-amber-300 rounded-xl px-2.5 py-2 text-[11px] font-mono text-cafe-espresso" />
+            <button id="btn-copy-kitchen-link" class="px-3 py-2 rounded-xl bg-cafe-espresso hover:bg-cafe-roast text-amber-300 text-xs font-bold shrink-0 transition">
+              📋 Copy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 1-CLICK CLOUD SYNC SETUP MODAL (FOR CROSS-PHONE LIVE ORDERS)          -->
+  <!-- ===================================================================== -->
+  <div id="cloud-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-cafe-cream w-full max-w-md rounded-3xl shadow-2xl border-2 border-amber-500/50 overflow-hidden">
+      <div class="bg-cafe-espresso text-cafe-cream px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="font-serif font-bold text-lg text-amber-100">☁️ Cross-Phone Live Cloud Sync</h3>
+          <p class="text-[11px] text-amber-300/80">Connect two separate mobile phones in 1 click</p>
+        </div>
+        <button id="btn-close-cloud" class="w-8 h-8 rounded-full bg-cafe-roast text-amber-100 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="bg-white rounded-2xl p-4 border border-cafe-latte space-y-2.5 text-xs text-cafe-roast">
+          <p class="font-bold text-cafe-espresso">How to sync orders across two different phones:</p>
+          <ol class="list-decimal pl-4 space-y-1">
+            <li>Create a free <strong>Firebase Realtime Database</strong> (in Test Mode) at <code>console.firebase.google.com</code>.</li>
+            <li>Paste your database URL below (e.g., <code>https://your-cafe-default-rtdb.firebaseio.com</code>) and click <strong>Save & Connect</strong>.</li>
+            <li>Once saved, every QR code generated in <strong>QR & Links</strong> automatically embeds this database link so any customer phone syncs straight to your kitchen phone!</li>
+          </ol>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-extrabold text-cafe-espresso">Firebase Realtime Database URL</label>
+          <input id="cloud-db-input" type="url" placeholder="https://your-project-default-rtdb.firebaseio.com"
+            class="w-full rounded-xl bg-white border-2 border-cafe-latte px-3 py-2.5 text-xs font-mono text-cafe-espresso focus:outline-none focus:border-amber-600" />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-save-cloud" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow transition">
+            ✅ Save & Connect Live Sync
+          </button>
+          <button id="btn-reset-cloud" class="py-3 px-3 rounded-xl bg-cafe-parchment hover:bg-cafe-latte text-cafe-espresso font-bold text-xs border border-cafe-latte transition">
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- COMPLETE MENU DATA, SYNC ENGINE & UI LOGIC                            -->
+  <!-- ===================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. COMPLETE 2-PAGE CAFÉ CORNER MENU CATALOG (ALL 23 CATEGORIES)
+    // =========================================================================
+    const MENU_CATEGORIES = [
+      { id: 'all', label: '🍽️ All Menu' },
+      { id: 'french_fries', label: '🍟 French Fries' },
+      { id: 'loaded', label: '🧀 Loaded Fries' },
+      { id: 'cheese_shots', label: '🟡 Cheese Shots' },
+      { id: 'nuggets', label: '🍗 Nuggets' },
+      { id: 'boneless', label: '🍖 Boneless' },
+      { id: 'fried_chicken', label: '🍗 Fried Chicken' },
+      { id: 'momos_steam', label: '🥟 Momos Steam' },
+      { id: 'momos_fried', label: '🥟 Momos Fried' },
+      { id: 'pizzas', label: '🍕 Pizzas' },
+      { id: 'burgers', label: '🍔 Burgers' },
+      { id: 'rolls', label: '🌯 Rolls' },
+      { id: 'sandwich', label: '🥪 Sandwich' },
+      { id: 'combos', label: '🎁 Combo Offers' },
+      { id: 'nonveg_starters', label: '🔥 Non-Veg Starters' },
+      { id: 'veg_starters', label: '🥗 Veg Starters' },
+      { id: 'rice_noodles', label: '🍜 Rice & Noodles' },
+      { id: 'gobi', label: '🥦 Gobi' },
+      { id: 'hot_beverages', label: '☕ Hot Beverages' },
+      { id: 'cold_beverages', label: '🧊 Cold Beverages' },
+      { id: 'fresh_juices', label: '🍹 Fresh Juices' },
+      { id: 'mojitos', label: '🍋 Mojitos' },
+      { id: 'milkshakes', label: '🥤 Milkshakes' },
+      { id: 'ice_cream', label: '🍨 Ice Cream' }
+    ];
+
+    const MENU_ITEMS = [
+      // --- PAGE 1 ---
+      // French Fries
+      { id: 'ff1', category: 'french_fries', name: 'Salted Fries', veg: true, variants: [{ label: 'S', price: 59 }, { label: 'L', price: 99 }] },
+      { id: 'ff2', category: 'french_fries', name: 'Peri Peri Fries', veg: true, variants: [{ label: 'S', price: 69 }, { label: 'L', price: 119 }] },
+
+      // Loaded
+      { id: 'ld1', category: 'loaded', name: 'Crispy Chicken Loaded Fries', veg: false, variants: [{ label: 'Regular', price: 199 }] },
+      { id: 'ld2', category: 'loaded', name: 'Tandoori Chicken Loaded Fries', veg: false, variants: [{ label: 'Regular', price: 199 }] },
+
+      // Cheese Shots
+      { id: 'cs1', category: 'cheese_shots', name: 'Potato Cheese Shots', veg: true, variants: [{ label: '5 pcs', price: 69 }, { label: '10 pcs', price: 119 }] },
+      { id: 'cs2', category: 'cheese_shots', name: 'Chicken Cheese Shots', veg: false, variants: [{ label: '5 pcs', price: 79 }, { label: '10 pcs', price: 139 }] },
+
+      // Nuggets
+      { id: 'ng1', category: 'nuggets', name: 'Chicken Nuggets', veg: false, variants: [{ label: '3 pcs', price: 59 }, { label: '6 pcs', price: 89 }, { label: '9 pcs', price: 119 }] },
+      { id: 'ng2', category: 'nuggets', name: 'Veg Nuggets', veg: true, variants: [{ label: '3 pcs', price: 49 }, { label: '6 pcs', price: 79 }, { label: '9 pcs', price: 109 }] },
+
+      // Boneless
+      { id: 'bl1', category: 'boneless', name: 'Chicken Popcorn', veg: false, variants: [{ label: 'S', price: 99 }, { label: 'L', price: 149 }] },
+      { id: 'bl2', category: 'boneless', name: 'Chicken Strips', veg: false, variants: [{ label: 'S', price: 79 }, { label: 'L', price: 159 }] },
+
+      // Fried Chicken
+      { id: 'fc1', category: 'fried_chicken', name: 'Leg Pieces', veg: false, variants: [{ label: '2 pcs', price: 119 }] },
+      { id: 'fc2', category: 'fried_chicken', name: 'Wings', veg: false, variants: [{ label: '2 pcs', price: 99 }] },
+
+      // Momos Steam
+      { id: 'ms1', category: 'momos_steam', name: 'Veg Momos (Steam)', veg: true, variants: [{ label: '3 pcs', price: 49 }, { label: '6 pcs', price: 79 }, { label: '9 pcs', price: 109 }] },
+      { id: 'ms2', category: 'momos_steam', name: 'Corn Momos (Steam)', veg: true, variants: [{ label: '3 pcs', price: 49 }, { label: '6 pcs', price: 79 }, { label: '9 pcs', price: 109 }] },
+      { id: 'ms3', category: 'momos_steam', name: 'Paneer Momos (Steam)', veg: true, variants: [{ label: '3 pcs', price: 59 }, { label: '6 pcs', price: 89 }, { label: '9 pcs', price: 119 }] },
+      { id: 'ms4', category: 'momos_steam', name: 'Chicken Momos (Steam)', veg: false, variants: [{ label: '3 pcs', price: 59 }, { label: '6 pcs', price: 89 }, { label: '9 pcs', price: 119 }] },
+
+      // Momos Fried
+      { id: 'mf1', category: 'momos_fried', name: 'Veg Momos (Fried)', veg: true, variants: [{ label: '3 pcs', price: 59 }, { label: '6 pcs', price: 89 }, { label: '9 pcs', price: 119 }] },
+      { id: 'mf2', category: 'momos_fried', name: 'Corn Momos (Fried)', veg: true, variants: [{ label: '3 pcs', price: 59 }, { label: '6 pcs', price: 89 }, { label: '9 pcs', price: 119 }] },
+      { id: 'mf3', category: 'momos_fried', name: 'Paneer Momos (Fried)', veg: true, variants: [{ label: '3 pcs', price: 69 }, { label: '6 pcs', price: 99 }, { label: '9 pcs', price: 129 }] },
+      { id: 'mf4', category: 'momos_fried', name: 'Chicken Momos (Fried)', veg: false, variants: [{ label: '3 pcs', price: 59 }, { label: '6 pcs', price: 99 }, { label: '9 pcs', price: 129 }] },
+
+      // Pizzas (+ Extra Cheese ₹29)
+      { id: 'pz1', category: 'pizzas', name: 'Veg Pizza', veg: true, allowCheese: true, variants: [{ label: 'S', price: 149 }, { label: 'L', price: 199 }] },
+      { id: 'pz2', category: 'pizzas', name: 'Sweet Corn Pizza', veg: true, allowCheese: true, variants: [{ label: 'S', price: 149 }, { label: 'L', price: 199 }] },
+      { id: 'pz3', category: 'pizzas', name: 'Baby Corn Pizza', veg: true, allowCheese: true, variants: [{ label: 'S', price: 149 }, { label: 'L', price: 199 }] },
+      { id: 'pz4', category: 'pizzas', name: 'Paneer Pizza', veg: true, allowCheese: true, variants: [{ label: 'S', price: 179 }, { label: 'L', price: 229 }] },
+      { id: 'pz5', category: 'pizzas', name: 'Cheesy Pizza', veg: true, allowCheese: true, variants: [{ label: 'S', price: 179 }, { label: 'L', price: 229 }] },
+      { id: 'pz6', category: 'pizzas', name: 'Chicken Crispy Pizza', veg: false, allowCheese: true, variants: [{ label: 'S', price: 179 }, { label: 'L', price: 229 }] },
+      { id: 'pz7', category: 'pizzas', name: 'Chicken Peri Peri Pizza', veg: false, allowCheese: true, variants: [{ label: 'S', price: 179 }, { label: 'L', price: 229 }] },
+
+      // Burgers (+ Extra Cheese ₹29)
+      { id: 'bg1', category: 'burgers', name: 'Veg Patty Burger', veg: true, allowCheese: true, variants: [{ label: 'Regular', price: 79 }] },
+      { id: 'bg2', category: 'burgers', name: 'Chicken Patty Burger', veg: false, allowCheese: true, variants: [{ label: 'Regular', price: 89 }] },
+      { id: 'bg3', category: 'burgers', name: 'Crispy Chicken Burger', veg: false, allowCheese: true, variants: [{ label: 'Regular', price: 119 }] },
+      { id: 'bg4', category: 'burgers', name: 'Double Chicken Patty Burger', veg: false, allowCheese: true, variants: [{ label: 'Regular', price: 159 }] },
+
+      // Rolls
+      { id: 'rl1', category: 'rolls', name: 'Chicken Shawarma Roll', veg: false, variants: [{ label: 'Regular', price: 99 }] },
+      { id: 'rl2', category: 'rolls', name: 'Spcl Chicken Shawarma Roll', veg: false, variants: [{ label: 'Regular', price: 129 }] },
+      { id: 'rl3', category: 'rolls', name: 'Chicken Crispy Roll', veg: false, variants: [{ label: 'Regular', price: 99 }] },
+
+      // Sandwich (+ Extra Cheese ₹29)
+      { id: 'sw1', category: 'sandwich', name: 'Veg Sandwich', veg: true, allowCheese: true, variants: [{ label: 'Regular', price: 79 }] },
+      { id: 'sw2', category: 'sandwich', name: 'Paneer Sandwich', veg: true, allowCheese: true, variants: [{ label: 'Regular', price: 99 }] },
+      { id: 'sw3', category: 'sandwich', name: 'Chicken Sandwich', veg: false, allowCheese: true, variants: [{ label: 'Regular', price: 119 }] },
+
+      // Combo Offers
+      { id: 'cb1', category: 'combos', name: 'Chicken Burger + Fries + Mint', veg: false, variants: [{ label: 'Combo', price: 209 }] },
+      { id: 'cb2', category: 'combos', name: 'Chicken Pizza + Fries + Mint', veg: false, variants: [{ label: 'Combo', price: 209 }] },
+      { id: 'cb3', category: 'combos', name: 'Chicken Sandwich + Fries + Mint', veg: false, variants: [{ label: 'Combo', price: 209 }] },
+
+      // --- PAGE 2 ---
+      // Non-Veg Starters
+      { id: 'nvs1', category: 'nonveg_starters', name: 'Chicken 65', veg: false, variants: [{ label: 'Half', price: 129 }, { label: 'Full', price: 189 }] },
+      { id: 'nvs2', category: 'nonveg_starters', name: 'Chicken Manchurian', veg: false, variants: [{ label: 'Half', price: 139 }, { label: 'Full', price: 199 }] },
+      { id: 'nvs3', category: 'nonveg_starters', name: 'Chicken Chilly', veg: false, variants: [{ label: 'Half', price: 139 }, { label: 'Full', price: 199 }] },
+      { id: 'nvs4', category: 'nonveg_starters', name: 'Chicken Lollypop', veg: false, variants: [{ label: 'Half', price: 129 }, { label: 'Full', price: 229 }] },
+      { id: 'nvs5', category: 'nonveg_starters', name: 'Pepper Chicken', veg: false, variants: [{ label: 'Half', price: 149 }, { label: 'Full', price: 219 }] },
+      { id: 'nvs6', category: 'nonveg_starters', name: 'Chicken 555 / Chicken Special', veg: false, variants: [{ label: 'Half', price: 149 }, { label: 'Full', price: 219 }] },
+      { id: 'nvs7', category: 'nonveg_starters', name: 'Dragon Chicken', veg: false, variants: [{ label: 'Half', price: 159 }, { label: 'Full', price: 229 }] },
+      { id: 'nvs8', category: 'nonveg_starters', name: 'Chicken Majestic', veg: false, variants: [{ label: 'Half', price: 149 }, { label: 'Full', price: 219 }] },
+      { id: 'nvs9', category: 'nonveg_starters', name: 'Lemon Chicken', veg: false, variants: [{ label: 'Half', price: 149 }, { label: 'Full', price: 219 }] },
+      { id: 'nvs10', category: 'nonveg_starters', name: 'Crispy Chicken', veg: false, variants: [{ label: 'Half', price: 139 }, { label: 'Full', price: 199 }] },
+      { id: 'nvs11', category: 'nonveg_starters', name: 'Honey Chicken', veg: false, variants: [{ label: 'Half', price: 159 }, { label: 'Full', price: 229 }] },
+
+      // Veg Starters
+      { id: 'vs1', category: 'veg_starters', name: 'Paneer 65 / Paneer Special', veg: true, variants: [{ label: 'Half', price: 129 }, { label: 'Full', price: 189 }] },
+      { id: 'vs2', category: 'veg_starters', name: 'Paneer Manchurian', veg: true, variants: [{ label: 'Half', price: 139 }, { label: 'Full', price: 199 }] },
+      { id: 'vs3', category: 'veg_starters', name: 'Paneer Chilly', veg: true, variants: [{ label: 'Half', price: 139 }, { label: 'Full', price: 199 }] },
+      { id: 'vs4', category: 'veg_starters', name: 'Baby Corn 65 / Baby Corn Special', veg: true, variants: [{ label: 'Half', price: 119 }, { label: 'Full', price: 179 }] },
+      { id: 'vs5', category: 'veg_starters', name: 'Baby Corn Chilly', veg: true, variants: [{ label: 'Half', price: 129 }, { label: 'Full', price: 189 }] },
+      { id: 'vs6', category: 'veg_starters', name: 'Baby Corn Manchurian', veg: true, variants: [{ label: 'Half', price: 129 }, { label: 'Full', price: 189 }] },
+
+      // Rice & Noodles
+      { id: 'rn1', category: 'rice_noodles', name: 'Veg Fried Rice', veg: true, variants: [{ label: 'Half', price: 59 }, { label: 'Full', price: 109 }] },
+      { id: 'rn2', category: 'rice_noodles', name: 'Egg Fried Rice', veg: false, variants: [{ label: 'Half', price: 69 }, { label: 'Full', price: 119 }] },
+      { id: 'rn3', category: 'rice_noodles', name: 'Gobi Fried Rice', veg: true, variants: [{ label: 'Half', price: 69 }, { label: 'Full', price: 119 }] },
+      { id: 'rn4', category: 'rice_noodles', name: 'Zeera Rice', veg: true, variants: [{ label: 'Half', price: 79 }, { label: 'Full', price: 129 }] },
+      { id: 'rn5', category: 'rice_noodles', name: 'Chicken Fried Rice', veg: false, variants: [{ label: 'Half', price: 79 }, { label: 'Full', price: 129 }] },
+      { id: 'rn6', category: 'rice_noodles', name: 'Sezwan Fried Rice', veg: true, variants: [{ label: 'Half', price: 99 }, { label: 'Full', price: 149 }] },
+      { id: 'rn7', category: 'rice_noodles', name: 'Veg Noodles', veg: true, variants: [{ label: 'Half', price: 59 }, { label: 'Full', price: 109 }] },
+      { id: 'rn8', category: 'rice_noodles', name: 'Egg Noodles', veg: false, variants: [{ label: 'Half', price: 69 }, { label: 'Full', price: 119 }] },
+      { id: 'rn9', category: 'rice_noodles', name: 'Gobi Noodles', veg: true, variants: [{ label: 'Half', price: 69 }, { label: 'Full', price: 119 }] },
+      { id: 'rn10', category: 'rice_noodles', name: 'Chicken Noodles', veg: false, variants: [{ label: 'Half', price: 79 }, { label: 'Full', price: 129 }] },
+      { id: 'rn11', category: 'rice_noodles', name: 'Sezwan Noodles', veg: true, variants: [{ label: 'Half', price: 99 }, { label: 'Full', price: 149 }] },
+
+      // Gobi
+      { id: 'gb1', category: 'gobi', name: 'Gobi Manchurian', veg: true, variants: [{ label: 'Half', price: 49 }, { label: 'Full', price: 89 }] },
+      { id: 'gb2', category: 'gobi', name: 'Gobi Chilly', veg: true, variants: [{ label: 'Half', price: 49 }, { label: 'Full', price: 89 }] },
+      { id: 'gb3', category: 'gobi', name: 'Gobi 65', veg: true, variants: [{ label: 'Half', price: 49 }, { label: 'Full', price: 89 }] },
+
+      // Hot Beverages
+      { id: 'hb1', category: 'hot_beverages', name: 'Coffee', veg: true, variants: [{ label: 'Cup', price: 20 }] },
+      { id: 'hb2', category: 'hot_beverages', name: 'Caramel Coffee', veg: true, variants: [{ label: 'Cup', price: 30 }] },
+      { id: 'hb3', category: 'hot_beverages', name: 'Green Tea', veg: true, variants: [{ label: 'Cup', price: 20 }] },
+      { id: 'hb4', category: 'hot_beverages', name: 'Black Coffee', veg: true, variants: [{ label: 'Cup', price: 20 }] },
+      { id: 'hb5', category: 'hot_beverages', name: 'Boost', veg: true, variants: [{ label: 'Cup', price: 20 }] },
+      { id: 'hb6', category: 'hot_beverages', name: 'Horlicks', veg: true, variants: [{ label: 'Cup', price: 20 }] },
+
+      // Cold Beverages
+      { id: 'clb1', category: 'cold_beverages', name: 'Cold Coffee', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'clb2', category: 'cold_beverages', name: 'Chocolate Cold Coffee', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+
+      // Fresh Juices
+      { id: 'fj1', category: 'fresh_juices', name: 'Pineapple Juice', veg: true, variants: [{ label: 'Glass', price: 59 }] },
+      { id: 'fj2', category: 'fresh_juices', name: 'Watermelon Juice', veg: true, variants: [{ label: 'Glass', price: 59 }] },
+      { id: 'fj3', category: 'fresh_juices', name: 'Pomegranate Juice', veg: true, variants: [{ label: 'Glass', price: 69 }] },
+      { id: 'fj4', category: 'fresh_juices', name: 'Banana Juice', veg: true, variants: [{ label: 'Glass', price: 69 }] },
+      { id: 'fj5', category: 'fresh_juices', name: 'Apple Juice', veg: true, variants: [{ label: 'Glass', price: 69 }] },
+
+      // Mojitos
+      { id: 'mj1', category: 'mojitos', name: 'Mint Mojito', veg: true, variants: [{ label: 'Glass', price: 59 }] },
+      { id: 'mj2', category: 'mojitos', name: 'Pineapple Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj3', category: 'mojitos', name: 'Blue Curaco Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj4', category: 'mojitos', name: 'Strawberry Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj5', category: 'mojitos', name: 'Green Apple Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj6', category: 'mojitos', name: 'Grape Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj7', category: 'mojitos', name: 'Litchi Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj8', category: 'mojitos', name: 'Kiwi Mojito', veg: true, variants: [{ label: 'Glass', price: 79 }] },
+      { id: 'mj9', category: 'mojitos', name: 'Black Current Mojito', veg: true, variants: [{ label: 'Glass', price: 89 }] },
+      { id: 'mj10', category: 'mojitos', name: 'Blue Berry Mojito', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+
+      // Milkshakes
+      { id: 'mk1', category: 'milkshakes', name: 'Vanilla Shake', veg: true, variants: [{ label: 'Glass', price: 69 }] },
+      { id: 'mk2', category: 'milkshakes', name: 'Oreo Shake', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+      { id: 'mk3', category: 'milkshakes', name: 'Dark Fantasy Shake', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+      { id: 'mk4', category: 'milkshakes', name: 'Strawberry Shake', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+      { id: 'mk5', category: 'milkshakes', name: 'Pista Shake', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+      { id: 'mk6', category: 'milkshakes', name: 'Black Currant Shake', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+      { id: 'mk7', category: 'milkshakes', name: 'Chocolate Shake', veg: true, variants: [{ label: 'Glass', price: 99 }] },
+      { id: 'mk8', category: 'milkshakes', name: 'Butterscotch Shake', veg: true, variants: [{ label: 'Glass', price: 119 }] },
+      { id: 'mk9', category: 'milkshakes', name: 'Dates Shake', veg: true, variants: [{ label: 'Glass', price: 119 }] },
+      { id: 'mk10', category: 'milkshakes', name: 'Kit Kat Shake', veg: true, variants: [{ label: 'Glass', price: 129 }] },
+
+      // Ice Cream
+      { id: 'ic1', category: 'ice_cream', name: 'Vennala', veg: true, variants: [{ label: 'Scoop', price: 40 }] },
+      { id: 'ic2', category: 'ice_cream', name: 'Pista', veg: true, variants: [{ label: 'Scoop', price: 40 }] },
+      { id: 'ic3', category: 'ice_cream', name: 'Strawberry', veg: true, variants: [{ label: 'Scoop', price: 40 }] },
+      { id: 'ic4', category: 'ice_cream', name: 'Butterscotch', veg: true, variants: [{ label: 'Scoop', price: 50 }] },
+      { id: 'ic5', category: 'ice_cream', name: 'Chocolate', veg: true, variants: [{ label: 'Scoop', price: 50 }] }
+    ];
+
+    // =========================================================================
+    // 2. STRICT URL ROUTING & APPLICATION STATE
+    // =========================================================================
+    const KITCHEN_STAFF_PIN = '1234';
+    const STORAGE_ORDERS_KEY = 'cafe_corner_orders_v1';
+    const STORAGE_CLOUD_URL_KEY = 'cafe_corner_rtdb_url_v1';
+
+    function resolveInitialRoute() {
+      const params = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.toLowerCase();
+      if (params.get('view') === 'kitchen' || hash === '#kitchen') {
+        return 'kitchen';
+      }
+      return 'customer';
+    }
+
+    function resolveInitialTable() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('table');
+      if (!raw) return 'Table 1';
+      if (raw.toLowerCase() === 'takeaway') return 'Takeaway';
+      if (/^\d+$/.test(raw.trim())) return `Table ${raw.trim()}`;
+      return raw;
+    }
+
+    function resolveInitialCloudUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const urlParam = params.get('db');
+      if (urlParam && urlParam.startsWith('http')) {
+        const cleaned = urlParam.replace(/\/+$/, '');
+        try { localStorage.setItem(STORAGE_CLOUD_URL_KEY, cleaned); } catch (e) {}
+        return cleaned;
+      }
+      try {
+        return (localStorage.getItem(STORAGE_CLOUD_URL_KEY) || '').replace(/\/+$/, '');
+      } catch (e) {
+        return '';
+      }
+    }
+
+    const state = {
+      view: resolveInitialRoute(),
+      kitchenUnlocked: false,
+      selectedCategory: 'all',
+      dietFilter: 'all',
+      searchQuery: '',
+      table: resolveInitialTable(),
+      cloudDbUrl: resolveInitialCloudUrl(),
+      cart: [],
+      orders: [],
+      kitchenTab: 'new',
+      soundEnabled: true,
+      knownOrderIds: new Set(),
+      initialSyncDone: false,
+      modalItem: null,
+      modalVariantIdx: 0,
+      modalExtraCheese: false,
+      modalQty: 1
+    };
+
+    // =========================================================================
+    // 3. CROSS-DEVICE REAL-TIME SYNC ENGINE (FIREBASE RTDB + BROADCASTCHANNEL)
+    // =========================================================================
+    let broadcastChannel = null;
+    if ('BroadcastChannel' in window) {
+      broadcastChannel = new BroadcastChannel('cafe_corner_live_channel');
+      broadcastChannel.onmessage = (event) => {
+        if (event.data && event.data.type === 'ORDERS_UPDATED') {
+          loadOrdersFromLocalAndMerge(event.data.orders || []);
+        }
+      };
+    }
+
+    function getLocalOrders() {
+      try {
+        const raw = localStorage.getItem(STORAGE_ORDERS_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLocalOrders(ordersList) {
+      try {
+        localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(ordersList));
+      } catch (e) {}
+      if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'ORDERS_UPDATED', orders: ordersList });
+      }
+    }
+
+    function applyIncomingOrders(incomingList) {
+      const normalized = Array.isArray(incomingList)
+        ? incomingList
+        : Object.values(incomingList || {});
+
+      normalized.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      let hasNewOrderForKitchen = false;
+      normalized.forEach((ord) => {
+        if (!ord || !ord.id) return;
+        if (state.initialSyncDone && !state.knownOrderIds.has(ord.id) && ord.status === 'new') {
+          hasNewOrderForKitchen = true;
+        }
+        state.knownOrderIds.add(ord.id);
+      });
+
+      state.orders = normalized;
+      saveLocalOrders(normalized);
+
+      if (hasNewOrderForKitchen && state.view === 'kitchen' && state.kitchenUnlocked) {
+        playKitchenChime();
+        showToast('🔔 New customer order received!', 'success');
+      }
+
+      state.initialSyncDone = true;
+      renderCustomerLiveTracker();
+      renderKitchenBoard();
+    }
+
+    function loadOrdersFromLocalAndMerge(externalOrders) {
+      const map = new Map();
+      getLocalOrders().forEach((o) => { if (o && o.id) map.set(o.id, o); });
+      externalOrders.forEach((o) => { if (o && o.id) map.set(o.id, o); });
+      applyIncomingOrders(Array.from(map.values()));
+    }
+
+    async function syncFromCloud() {
+      const syncDot = document.getElementById('sync-dot');
+      const cloudBadge = document.getElementById('cloud-status-badge');
+
+      if (!state.cloudDbUrl) {
+        // Local same-device multi-tab sync mode
+        applyIncomingOrders(getLocalOrders());
+        if (syncDot) syncDot.className = 'inline-block w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
+        if (cloudBadge) {
+          cloudBadge.textContent = '● Same-Device Sync (Configure Cloud for 2nd Phone)';
+          cloudBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300';
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch(`${state.cloudDbUrl}/cafe_corner_orders.json`);
+        if (!res.ok) throw new Error('Cloud fetch error');
+        const data = await res.json();
+        const list = data ? Object.values(data) : [];
+        applyIncomingOrders(list);
+
+        if (syncDot) syncDot.className = 'inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
+        if (cloudBadge) {
+          cloudBadge.textContent = '● Cloud Live Connected (2-Phone Ready)';
+          cloudBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300';
+        }
+      } catch (err) {
+        if (syncDot) syncDot.className = 'inline-block w-2.5 h-2.5 rounded-full bg-red-400 shrink-0';
+        if (cloudBadge) {
+          cloudBadge.textContent = '● Cloud Offline (Check DB URL)';
+          cloudBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-800 border border-red-300';
+        }
+      }
+    }
+
+    async function persistOrderRecord(orderObj) {
+      const current = getLocalOrders().filter((o) => o.id !== orderObj.id);
+      current.unshift(orderObj);
+      applyIncomingOrders(current);
+
+      if (state.cloudDbUrl) {
+        try {
+          await fetch(`${state.cloudDbUrl}/cafe_corner_orders/${orderObj.id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderObj)
+          });
+        } catch (err) {
+          showToast('Saved locally; cloud sync retrying...', 'info');
+        }
+      }
+    }
+
+    async function updateOrderStatus(orderId, nextStatus) {
+      const target = state.orders.find((o) => o.id === orderId);
+      if (!target) return;
+      const updated = { ...target, status: nextStatus, updatedAt: Date.now() };
+      await persistOrderRecord(updated);
+      showToast(`Order #${orderId.slice(-4)} marked as ${nextStatus.toUpperCase()}`, 'success');
+    }
+
+    // =========================================================================
+    // 4. WEB AUDIO CHIME & TOAST NOTIFICATIONS (ZERO EXTERNAL AUDIO URLS)
+    // =========================================================================
+    function playKitchenChime() {
+      if (!state.soundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const notes = [587.33, 880]; // D5 -> A5 pleasant restaurant chime
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.16);
+          gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.16 + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.16);
+          osc.stop(ctx.currentTime + idx * 0.16 + 0.46);
+        });
+      } catch (e) {}
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors =
+        type === 'success'
+          ? 'bg-emerald-900 text-emerald-50 border-emerald-500'
+          : type === 'error'
+          ? 'bg-red-900 text-red-50 border-red-500'
+          : 'bg-cafe-espresso text-amber-100 border-amber-500';
+      toast.className = `${colors} border-2 px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold text-center transition-all duration-300`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    // =========================================================================
+    // 5. CUSTOMER MENU RENDERING & CUSTOMIZATION
+    // =========================================================================
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = MENU_CATEGORIES.map((cat) => {
+        const isActive = state.selectedCategory === cat.id;
+        return `
+          <button data-cat="${cat.id}" class="cat-pill shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold border transition ${
+            isActive
+              ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+              : 'bg-white text-cafe-espresso border-cafe-latte hover:bg-cafe-parchment'
+          }">
+            ${cat.label}
+          </button>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.cat-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.selectedCategory = btn.dataset.cat;
+          renderCategoryPills();
+          renderMenu();
+        });
+      });
+    }
+
+    function getFilteredMenuItems() {
+      const q = state.searchQuery.trim().toLowerCase();
+      return MENU_ITEMS.filter((item) => {
+        if (state.selectedCategory !== 'all' && item.category !== state.selectedCategory) return false;
+        if (state.dietFilter === 'veg' && !item.veg) return false;
+        if (state.dietFilter === 'nonveg' && item.veg) return false;
+        if (q) {
+          const catObj = MENU_CATEGORIES.find((c) => c.id === item.category);
+          const hay = `${item.name} ${catObj ? catObj.label : ''}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderMenu() {
+      const container = document.getElementById('menu-container');
+      const emptyState = document.getElementById('menu-empty-state');
+      const filtered = getFilteredMenuItems();
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      // Group items by category in menu order
+      const categoriesToRender = MENU_CATEGORIES.filter((c) => c.id !== 'all');
+      const htmlSections = [];
+
+      categoriesToRender.forEach((cat) => {
+        const items = filtered.filter((i) => i.category === cat.id);
+        if (items.length === 0) return;
+
+        const hasCheeseAddon = items.some((i) => i.allowCheese);
+
+        const cardsHtml = items
+          .map((item) => {
+            const vegIcon = item.veg
+              ? `<span class="w-3.5 h-3.5 rounded-xs border-2 border-emerald-600 flex items-center justify-center shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span></span>`
+              : `<span class="w-3.5 h-3.5 rounded-xs border-2 border-red-600 flex items-center justify-center shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-red-600"></span></span>`;
+
+            const priceSummary = item.variants
+              .map((v) =>
+                item.variants.length === 1 && (v.label === 'Regular' || v.label === 'Cup' || v.label === 'Glass' || v.label === 'Scoop' || v.label === 'Combo')
+                  ? `₹${v.price}`
+                  : `${v.label} ₹${v.price}`
+              )
+              .join(' • ');
+
+            const itemCartCount = state.cart
+              .filter((c) => c.itemId === item.id)
+              .reduce((sum, c) => sum + c.qty, 0);
+
+            const isSimpleSingle = item.variants.length === 1 && !item.allowCheese;
+
+            return `
+              <div class="bg-white rounded-2xl p-3.5 border border-cafe-latte shadow-2xs hover:border-amber-500/70 transition flex items-center justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    ${vegIcon}
+                    <h4 class="font-bold text-sm sm:text-base text-cafe-espresso leading-snug">${item.name}</h4>
+                  </div>
+                  <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span class="text-xs font-extrabold text-amber-800">${priceSummary}</span>
+                    ${item.allowCheese ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">+Cheese ₹29</span>` : ''}
+                  </div>
+                </div>
+
+                <div class="shrink-0 flex items-center gap-1.5">
+                  ${
+                    itemCartCount > 0
+                      ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-extrabold">${itemCartCount} in cart</span>`
+                      : ''
+                  }
+                  <button data-item-id="${item.id}" data-quick="${isSimpleSingle ? '1' : '0'}"
+                    class="btn-add-item px-3.5 py-2 rounded-xl bg-cafe-espresso hover:bg-amber-700 text-amber-100 font-extrabold text-xs shadow-xs transition active:scale-95">
+                    ${isSimpleSingle ? '+ Add' : '+ Select'}
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+
+        htmlSections.push(`
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between border-b-2 border-cafe-latte pb-1.5">
+              <h3 class="font-serif font-bold text-lg sm:text-xl text-cafe-espresso">${cat.label}</h3>
+              ${hasCheeseAddon ? `<span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-200/80 text-cafe-espresso">Extra Cheese ₹29</span>` : ''}
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              ${cardsHtml}
+            </div>
+          </div>
+        `);
+      });
+
+      container.innerHTML = htmlSections.join('');
+
+      container.querySelectorAll('.btn-add-item').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const item = MENU_ITEMS.find((i) => i.id === btn.dataset.itemId);
+          if (!item) return;
+          if (btn.dataset.quick === '1') {
+            addItemToCart(item, 0, false, 1);
+            showToast(`Added ${item.name} to cart`, 'success');
+          } else {
+            openItemModal(item);
+          }
+        });
+      });
+    }
+
+    function openItemModal(item) {
+      state.modalItem = item;
+      state.modalVariantIdx = 0;
+      state.modalExtraCheese = false;
+      state.modalQty = 1;
+
+      const catObj = MENU_CATEGORIES.find((c) => c.id === item.category);
+      document.getElementById('modal-item-name').textContent = item.name;
+      document.getElementById('modal-item-category').textContent = catObj ? catObj.label : '';
+
+      const badge = document.getElementById('modal-veg-badge');
+      badge.className = item.veg
+        ? 'w-3.5 h-3.5 rounded-xs border-2 border-emerald-500 flex items-center justify-center bg-white'
+        : 'w-3.5 h-3.5 rounded-xs border-2 border-red-500 flex items-center justify-center bg-white';
+      badge.innerHTML = item.veg
+        ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>'
+        : '<span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>';
+
+      const cheeseSec = document.getElementById('modal-cheese-section');
+      const cheeseBox = document.getElementById('modal-cheese-checkbox');
+      cheeseBox.checked = false;
+      if (item.allowCheese) {
+        cheeseSec.classList.remove('hidden');
+      } else {
+        cheeseSec.classList.add('hidden');
+      }
+
+      renderModalVariants();
+      updateModalTotal();
+      document.getElementById('item-modal').classList.remove('hidden');
+    }
+
+    function renderModalVariants() {
+      const item = state.modalItem;
+      if (!item) return;
+      const list = document.getElementById('modal-variants-list');
+      list.innerHTML = item.variants
+        .map((v, idx) => {
+          const active = idx === state.modalVariantIdx;
+          return `
+            <button data-vidx="${idx}" class="modal-var-btn p-3 rounded-2xl border-2 text-left transition ${
+              active
+                ? 'border-amber-600 bg-amber-50 text-cafe-espresso shadow-xs'
+                : 'border-cafe-latte bg-white text-cafe-roast hover:bg-cafe-parchment/50'
+            }">
+              <div class="text-xs font-extrabold">${v.label}</div>
+              <div class="text-sm font-extrabold text-amber-800 mt-0.5">₹${v.price}</div>
+            </button>
+          `;
+        })
+        .join('');
+
+      list.querySelectorAll('.modal-var-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.modalVariantIdx = Number(btn.dataset.vidx);
+          renderModalVariants();
+          updateModalTotal();
+        });
+      });
+    }
+
+    function updateModalTotal() {
+      const item = state.modalItem;
+      if (!item) return;
+      const base = item.variants[state.modalVariantIdx].price;
+      const cheese = state.modalExtraCheese ? 29 : 0;
+      const total = (base + cheese) * state.modalQty;
+      document.getElementById('modal-qty-val').textContent = state.modalQty;
+      document.getElementById('modal-total-price').textContent = total;
+    }
+
+    // =========================================================================
+    // 6. CART MANAGEMENT & ORDER SUBMISSION
+    // =========================================================================
+    function addItemToCart(item, variantIdx, extraCheese, qty) {
+      const variant = item.variants[variantIdx];
+      const unitPrice = variant.price + (extraCheese ? 29 : 0);
+      const key = `${item.id}_${variant.label}_${extraCheese ? 'cheese' : 'plain'}`;
+
+      const existing = state.cart.find((c) => c.key === key);
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        state.cart.push({
+          key,
+          itemId: item.id,
+          name: item.name,
+          veg: item.veg,
+          variantLabel: variant.label,
+          extraCheese,
+          unitPrice,
+          qty
+        });
+      }
+      renderMenu();
+      renderCartUI();
+    }
+
+    function changeCartQty(key, delta) {
+      const idx = state.cart.findIndex((c) => c.key === key);
+      if (idx === -1) return;
+      state.cart[idx].qty += delta;
+      if (state.cart[idx].qty <= 0) {
+        state.cart.splice(idx, 1);
+      }
+      renderMenu();
+      renderCartUI();
+    }
+
+    function renderCartUI() {
+      const totalQty = state.cart.reduce((s, c) => s + c.qty, 0);
+      const totalAmount = state.cart.reduce((s, c) => s + c.unitPrice * c.qty, 0);
+
+      const bar = document.getElementById('floating-cart-bar');
+      if (state.view === 'customer' && totalQty > 0) {
+        bar.classList.remove('hidden');
+      } else {
+        bar.classList.add('hidden');
+      }
+
+      document.getElementById('cart-bar-count').textContent = totalQty;
+      document.getElementById('cart-bar-table').textContent = state.table;
+      document.getElementById('cart-bar-total').textContent = totalAmount;
+      document.getElementById('checkout-grand-total').textContent = totalAmount;
+
+      const list = document.getElementById('cart-items-list');
+      if (state.cart.length === 0) {
+        list.innerHTML = `<div class="text-center py-8 text-xs text-cafe-roast/70">Your cart is empty. Add delicious items from the menu!</div>`;
+        return;
+      }
+
+      list.innerHTML = state.cart
+        .map(
+          (c) => `
+          <div class="bg-white rounded-2xl p-3 border border-cafe-latte flex items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-xs border-2 ${c.veg ? 'border-emerald-600' : 'border-red-600'} flex items-center justify-center shrink-0">
+                  <span class="w-1.5 h-1.5 rounded-full ${c.veg ? 'bg-emerald-600' : 'bg-red-600'}"></span>
+                </span>
+                <span class="font-bold text-xs sm:text-sm text-cafe-espresso truncate">${c.name}</span>
+              </div>
+              <div class="text-[11px] text-cafe-roast/80 mt-0.5">
+                ${c.variantLabel}${c.extraCheese ? ' + Extra Cheese (₹29)' : ''} • ₹${c.unitPrice} each
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="flex items-center bg-cafe-cream border border-cafe-latte rounded-xl">
+                <button data-key="${c.key}" data-delta="-1" class="btn-cart-qty w-7 h-7 font-extrabold text-sm text-cafe-espresso">−</button>
+                <span class="w-6 text-center text-xs font-extrabold">${c.qty}</span>
+                <button data-key="${c.key}" data-delta="1" class="btn-cart-qty w-7 h-7 font-extrabold text-sm text-cafe-espresso">+</button>
+              </div>
+              <span class="w-12 text-right font-extrabold text-xs text-amber-800">₹${c.unitPrice * c.qty}</span>
+            </div>
+          </div>
+        `
+        )
+        .join('');
+
+      list.querySelectorAll('.btn-cart-qty').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          changeCartQty(btn.dataset.key, Number(btn.dataset.delta));
+        });
+      });
+    }
+
+    async function handlePlaceOrder() {
+      if (state.cart.length === 0) {
+        showToast('Please add at least one item to your cart.', 'error');
+        return;
+      }
+
+      const customerName = document.getElementById('checkout-customer-name').value.trim();
+      const notes = document.getElementById('checkout-notes').value.trim();
+      const totalAmount = state.cart.reduce((s, c) => s + c.unitPrice * c.qty, 0);
+
+      const newOrder = {
+        id: `ORD_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`,
+        table: state.table,
+        customerName: customerName || 'Guest',
+        notes,
+        items: state.cart.map((c) => ({ ...c })),
+        total: totalAmount,
+        status: 'new',
+        createdAt: Date.now()
+      };
+
+      await persistOrderRecord(newOrder);
+
+      state.cart = [];
+      document.getElementById('checkout-notes').value = '';
+      document.getElementById('cart-modal').classList.add('hidden');
+      renderMenu();
+      renderCartUI();
+      showToast(`🎉 Order sent to Kitchen for ${state.table}!`, 'success');
+    }
+
+    function renderCustomerLiveTracker() {
+      const section = document.getElementById('customer-live-tracker');
+      const list = document.getElementById('customer-orders-list');
+      document.getElementById('tracker-table-label').textContent = state.table;
+
+      if (state.view !== 'customer') {
+        section.classList.add('hidden');
+        return;
+      }
+
+      const tableOrders = state.orders.filter(
+        (o) => o.table === state.table && o.status !== 'served'
+      );
+
+      if (tableOrders.length === 0) {
+        section.classList.add('hidden');
+        return;
+      }
+
+      section.classList.remove('hidden');
+      const statusBadgeMap = {
+        new: { label: '🕒 Order Received', cls: 'bg-amber-100 text-amber-900 border-amber-300' },
+        preparing: { label: '🔥 Cooking in Kitchen', cls: 'bg-blue-100 text-blue-900 border-blue-300' },
+        ready: { label: '✅ Ready to Serve!', cls: 'bg-emerald-100 text-emerald-900 border-emerald-400' }
+      };
+
+      list.innerHTML = tableOrders
+        .map((ord) => {
+          const st = statusBadgeMap[ord.status] || statusBadgeMap.new;
+          const itemsSummary = ord.items.map((i) => `${i.qty}× ${i.name}`).join(', ');
+          return `
+            <div class="bg-cafe-cream/70 rounded-xl p-3 border border-cafe-latte">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="text-xs font-extrabold text-cafe-espresso">#${ord.id.slice(-4)} • ₹${ord.total}</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${st.cls}">${st.label}</span>
+              </div>
+              <p class="text-[11px] text-cafe-roast line-clamp-2">${itemsSummary}</p>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    // =========================================================================
+    // 7. KITCHEN LIVE DASHBOARD RENDERING
+    // =========================================================================
+    function formatTimeAgo(ts) {
+      const diffSec = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+      if (diffSec < 60) return `${diffSec}s ago`;
+      const mins = Math.floor(diffSec / 60);
+      if (mins < 60) return `${mins}m ago`;
+      return `${Math.floor(mins / 60)}h ago`;
+    }
+
+    function renderKitchenBoard() {
+      const newCount = state.orders.filter((o) => o.status === 'new').length;
+      const prepCount = state.orders.filter((o) => o.status === 'preparing').length;
+      const readyCount = state.orders.filter((o) => o.status === 'ready').length;
+      const servedCount = state.orders.filter((o) => o.status === 'served').length;
+
+      document.getElementById('count-new').textContent = newCount;
+      document.getElementById('count-preparing').textContent = prepCount;
+      document.getElementById('count-ready').textContent = readyCount;
+      document.getElementById('count-served').textContent = servedCount;
+
+      const headerPill = document.getElementById('kitchen-active-pill');
+      if (newCount > 0 && state.view === 'kitchen') {
+        headerPill.textContent = `${newCount} New`;
+        headerPill.classList.remove('hidden');
+      } else {
+        headerPill.classList.add('hidden');
+      }
+
+      // Highlight active tab button
+      document.querySelectorAll('.ktab-btn').forEach((btn) => {
+        const tab = btn.dataset.ktab;
+        if (tab === state.kitchenTab) {
+          btn.className = 'ktab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-cafe-espresso text-amber-300 shadow-xs transition';
+        } else {
+          btn.className = 'ktab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-cafe-cream text-cafe-espresso border border-cafe-latte transition';
+        }
+      });
+
+      const grid = document.getElementById('kitchen-orders-grid');
+      const empty = document.getElementById('kitchen-empty-state');
+      const tabOrders = state.orders.filter((o) => o.status === state.kitchenTab);
+
+      if (tabOrders.length === 0) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      grid.innerHTML = tabOrders
+        .map((ord) => {
+          const itemsHtml = ord.items
+            .map(
+              (item) => `
+              <li class="flex items-start justify-between gap-2 py-1.5 border-b border-cafe-parchment last:border-none text-xs">
+                <div class="flex items-start gap-2">
+                  <span class="px-1.5 py-0.5 rounded bg-cafe-espresso text-amber-300 font-extrabold text-[11px] shrink-0">${item.qty}×</span>
+                  <div>
+                    <span class="font-bold text-cafe-espresso">${item.name}</span>
+                    <span class="text-cafe-roast/75"> (${item.variantLabel})</span>
+                    ${item.extraCheese ? `<div class="text-[10px] font-extrabold text-amber-800">+ Extra Cheese</div>` : ''}
+                  </div>
+                </div>
+                <span class="font-bold text-cafe-roast shrink-0">₹${item.unitPrice * item.qty}</span>
+              </li>
+            `
+            )
+            .join('');
+
+          let actionButton = '';
+          if (ord.status === 'new') {
+            actionButton = `<button data-oid="${ord.id}" data-next="preparing" class="btn-k-status w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow transition">🔥 Accept & Start Cooking</button>`;
+          } else if (ord.status === 'preparing') {
+            actionButton = `<button data-oid="${ord.id}" data-next="ready" class="btn-k-status w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow transition">✅ Mark Ready to Serve</button>`;
+          } else if (ord.status === 'ready') {
+            actionButton = `<button data-oid="${ord.id}" data-next="served" class="btn-k-status w-full py-2.5 rounded-xl bg-cafe-espresso hover:bg-cafe-roast text-amber-200 font-extrabold text-xs shadow transition">🍽️ Complete & Mark Served</button>`;
+          }
+
+          return `
+            <div class="bg-white rounded-2xl p-4 border-2 ${
+              ord.status === 'new' ? 'border-red-500 shadow-md' : 'border-cafe-latte shadow-xs'
+            } flex flex-col justify-between gap-3">
+              <div>
+                <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-cafe-latte">
+                  <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-xl bg-cafe-espresso text-amber-300 font-extrabold text-xs">${ord.table}</span>
+                    <div>
+                      <div class="text-xs font-extrabold text-cafe-espresso">#${ord.id.slice(-4)} • ${ord.customerName || 'Guest'}</div>
+                      <div class="text-[11px] text-cafe-roast/70">${formatTimeAgo(ord.createdAt)}</div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-extrabold text-amber-800">₹${ord.total}</div>
+                    <div class="text-[10px] font-bold uppercase text-cafe-roast/60">${ord.items.reduce((s, i) => s + i.qty, 0)} items</div>
+                  </div>
+                </div>
+
+                <ul class="mt-2">${itemsHtml}</ul>
+
+                ${
+                  ord.notes
+                    ? `<div class="mt-2.5 p-2 rounded-xl bg-amber-50 border border-amber-300 text-[11px] text-amber-950"><strong>Note:</strong> ${ord.notes}</div>`
+                    : ''
+                }
+              </div>
+
+              ${actionButton}
+            </div>
+          `;
+        })
+        .join('');
+
+      grid.querySelectorAll('.btn-k-status').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          updateOrderStatus(btn.dataset.oid, btn.dataset.next);
+        });
+      });
+    }
+
+    // =========================================================================
+    // 8. QR CODE & ROUTE HELPERS
+    // =========================================================================
+    function getBaseCleanUrl() {
+      return window.location.href.split('?')[0].split('#')[0];
+    }
+
+    function buildCustomerTableUrl(tableParam) {
+      const url = new URL(getBaseCleanUrl());
+      url.searchParams.set('table', tableParam);
+      if (state.cloudDbUrl) {
+        url.searchParams.set('db', state.cloudDbUrl);
+      }
+      return url.toString();
+    }
+
+    function buildKitchenDashboardUrl() {
+      const url = new URL(getBaseCleanUrl());
+      url.searchParams.set('view', 'kitchen');
+      if (state.cloudDbUrl) {
+        url.searchParams.set('db', state.cloudDbUrl);
+      }
+      return url.toString();
+    }
+
+    function generateTableQR(tableParam) {
+      const box = document.getElementById('qrcode-box');
+      box.innerHTML = '';
+      const label = tableParam === 'Takeaway' ? 'TAKEAWAY' : `TABLE ${tableParam}`;
+      document.getElementById('qr-table-badge').textContent = label;
+
+      const customerUrl = buildCustomerTableUrl(tableParam);
+      document.getElementById('btn-open-customer-preview').href = customerUrl;
+      document.getElementById('kitchen-share-url').value = buildKitchenDashboardUrl();
+
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(box, {
+          text: customerUrl,
+          width: 165,
+          height: 165,
+          colorDark: '#2C1A12',
+          colorLight: '#FFFFFF',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        box.innerHTML = `<div class="p-3 text-[11px] font-mono break-all">${customerUrl}</div>`;
+      }
+    }
+
+    function copyTextToClipboard(text, successMessage) {
+      const temp = document.createElement('input');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      showToast(successMessage, 'success');
+    }
+
+    function applyActiveView() {
+      const custView = document.getElementById('view-customer');
+      const kitchView = document.getElementById('view-kitchen');
+      const custHeader = document.getElementById('customer-header-controls');
+      const kitchHeader = document.getElementById('kitchen-header-controls');
+      const subtitle = document.getElementById('header-subtitle');
+
+      if (state.view === 'kitchen') {
+        custView.classList.add('hidden');
+        custHeader.classList.add('hidden');
+        kitchView.classList.remove('hidden');
+        kitchHeader.classList.remove('hidden');
+        subtitle.textContent = 'Kitchen Live Order Board • @THECAFECORNER_';
+
+        const gate = document.getElementById('kitchen-pin-gate');
+        const workspace = document.getElementById('kitchen-workspace');
+        if (state.kitchenUnlocked) {
+          gate.classList.add('hidden');
+          workspace.classList.remove('hidden');
+        } else {
+          gate.classList.remove('hidden');
+          workspace.classList.add('hidden');
+        }
+      } else {
+        kitchView.classList.add('hidden');
+        kitchHeader.classList.add('hidden');
+        custView.classList.remove('hidden');
+        custHeader.classList.remove('hidden');
+        subtitle.textContent = 'Good Food, Good Mood • @THECAFECORNER_';
+      }
+
+      renderCartUI();
+      renderCustomerLiveTracker();
+      renderKitchenBoard();
+    }
+
+    function syncTableSelection(newTable) {
+      state.table = newTable;
+      document.getElementById('header-table-select').value = newTable;
+      document.getElementById('checkout-table-select').value = newTable;
+      document.getElementById('customer-table-badge').textContent = `📍 ${newTable}`;
+      renderCartUI();
+      renderCustomerLiveTracker();
+    }
+
+    // =========================================================================
+    // 9. INITIALIZATION & EVENT BINDINGS
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      syncTableSelection(state.table);
+
+      // Table selectors
+      document.getElementById('header-table-select').addEventListener('change', (e) => {
+        syncTableSelection(e.target.value);
+      });
+      document.getElementById('checkout-table-select').addEventListener('change', (e) => {
+        syncTableSelection(e.target.value);
+      });
+
+      // Search & Diet Filters
+      const searchInput = document.getElementById('menu-search');
+      const clearBtn = document.getElementById('btn-clear-search');
+      searchInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        clearBtn.classList.toggle('hidden', !state.searchQuery);
+        renderMenu();
+      });
+      clearBtn.addEventListener('click', () => {
+        state.searchQuery = '';
+        searchInput.value = '';
+        clearBtn.classList.add('hidden');
+        renderMenu();
+      });
+
+      document.querySelectorAll('.diet-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.dietFilter = btn.dataset.diet;
+          document.querySelectorAll('.diet-btn').forEach((b) => {
+            const active = b.dataset.diet === state.dietFilter;
+            b.className = active
+              ? 'diet-btn active flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-extrabold border transition bg-cafe-espresso text-amber-200 border-cafe-espresso flex items-center justify-center gap-1.5'
+              : 'diet-btn flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-extrabold border transition bg-white text-cafe-espresso border-cafe-latte hover:bg-cafe-parchment flex items-center justify-center gap-1.5';
+          });
+          renderMenu();
+        });
+      });
+
+      document.getElementById('btn-reset-filters').addEventListener('click', () => {
+        state.selectedCategory = 'all';
+        state.dietFilter = 'all';
+        state.searchQuery = '';
+        searchInput.value = '';
+        clearBtn.classList.add('hidden');
+        renderCategoryPills();
+        renderMenu();
+      });
+
+      // Item Modal Controls
+      document.getElementById('btn-close-item-modal').addEventListener('click', () => {
+        document.getElementById('item-modal').classList.add('hidden');
+      });
+      document.getElementById('modal-cheese-checkbox').addEventListener('change', (e) => {
+        state.modalExtraCheese = e.target.checked;
+        updateModalTotal();
+      });
+      document.getElementById('btn-modal-minus').addEventListener('click', () => {
+        if (state.modalQty > 1) {
+          state.modalQty--;
+          updateModalTotal();
+        }
+      });
+      document.getElementById('btn-modal-plus').addEventListener('click', () => {
+        state.modalQty++;
+        updateModalTotal();
+      });
+      document.getElementById('btn-modal-add').addEventListener('click', () => {
+        if (!state.modalItem) return;
+        addItemToCart(state.modalItem, state.modalVariantIdx, state.modalExtraCheese, state.modalQty);
+        showToast(`Added ${state.modalItem.name} to cart`, 'success');
+        document.getElementById('item-modal').classList.add('hidden');
+      });
+
+      // Cart Modal Controls
+      document.getElementById('btn-open-cart').addEventListener('click', () => {
+        renderCartUI();
+        document.getElementById('cart-modal').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-cart').addEventListener('click', () => {
+        document.getElementById('cart-modal').classList.add('hidden');
+      });
+      document.getElementById('btn-place-order').addEventListener('click', handlePlaceOrder);
+
+      // Kitchen PIN Lock Controls
+      const pinInput = document.getElementById('kitchen-pin-input');
+      const pinError = document.getElementById('kitchen-pin-error');
+      const unlockKitchen = () => {
+        state.kitchenUnlocked = true;
+        pinError.classList.add('hidden');
+        pinInput.value = '';
+        applyActiveView();
+        showToast('🔓 Kitchen Dashboard Unlocked', 'success');
+      };
+
+      document.getElementById('btn-unlock-kitchen').addEventListener('click', () => {
+        if (pinInput.value.trim() === KITCHEN_STAFF_PIN) {
+          unlockKitchen();
+        } else {
+          pinError.classList.remove('hidden');
+        }
+      });
+      pinInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          if (pinInput.value.trim() === KITCHEN_STAFF_PIN) unlockKitchen();
+          else pinError.classList.remove('hidden');
+        }
+      });
+      document.getElementById('btn-demo-unlock').addEventListener('click', unlockKitchen);
+      document.getElementById('btn-lock-kitchen').addEventListener('click', () => {
+        state.kitchenUnlocked = false;
+        applyActiveView();
+        showToast('🔒 Kitchen Dashboard Locked', 'info');
+      });
+
+      // Kitchen Tabs, Sound & Test Order
+      document.querySelectorAll('.ktab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.kitchenTab = btn.dataset.ktab;
+          renderKitchenBoard();
+        });
+      });
+
+      document.getElementById('btn-toggle-sound').addEventListener('click', (e) => {
+        state.soundEnabled = !state.soundEnabled;
+        e.currentTarget.innerHTML = state.soundEnabled ? '<span>🔔 Sound: ON</span>' : '<span>🔕 Sound: OFF</span>';
+        if (state.soundEnabled) playKitchenChime();
+      });
+
+      document.getElementById('btn-test-order').addEventListener('click', async () => {
+        const sampleOrder = {
+          id: `ORD_${Date.now()}_999`,
+          table: 'Table 3',
+          customerName: 'Demo Customer',
+          notes: 'Extra crispy fries',
+          items: [
+            { name: 'Crispy Chicken Burger', variantLabel: 'Regular', extraCheese: true, unitPrice: 148, qty: 1 },
+            { name: 'Peri Peri Fries', variantLabel: 'L', extraCheese: false, unitPrice: 119, qty: 1 },
+            { name: 'Mint Mojito', variantLabel: 'Glass', extraCheese: false, unitPrice: 59, qty: 2 }
+          ],
+          total: 385,
+          status: 'new',
+          createdAt: Date.now()
+        };
+        state.kitchenTab = 'new';
+        await persistOrderRecord(sampleOrder);
+      });
+
+      // QR & Links Modal
+      const qrModal = document.getElementById('qr-modal');
+      const qrTableSelect = document.getElementById('qr-table-select');
+      document.getElementById('btn-open-qr').addEventListener('click', () => {
+        generateTableQR(qrTableSelect.value);
+        qrModal.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-qr').addEventListener('click', () => {
+        qrModal.classList.add('hidden');
+      });
+      qrTableSelect.addEventListener('change', (e) => {
+        generateTableQR(e.target.value);
+      });
+      document.getElementById('btn-copy-customer-link').addEventListener('click', () => {
+        copyTextToClipboard(buildCustomerTableUrl(qrTableSelect.value), '📋 Customer table link copied!');
+      });
+      document.getElementById('btn-copy-kitchen-link').addEventListener('click', () => {
+        copyTextToClipboard(buildKitchenDashboardUrl(), '📋 Kitchen dashboard link copied!');
+      });
+
+      // Cloud Sync Setup Modal
+      const cloudModal = document.getElementById('cloud-modal');
+      const cloudInput = document.getElementById('cloud-db-input');
+      document.getElementById('btn-open-cloud').addEventListener('click', () => {
+        cloudInput.value = state.cloudDbUrl;
+        cloudModal.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-cloud').addEventListener('click', () => {
+        cloudModal.classList.add('hidden');
+      });
+      document.getElementById('btn-save-cloud').addEventListener('click', async () => {
+        const val = cloudInput.value.trim().replace(/\/+$/, '');
+        if (!val.startsWith('https://')) {
+          showToast('Please enter a valid https:// Firebase Realtime Database URL', 'error');
+          return;
+        }
+        state.cloudDbUrl = val;
+        try { localStorage.setItem(STORAGE_CLOUD_URL_KEY, val); } catch (e) {}
+        cloudModal.classList.add('hidden');
+        showToast('☁️ Cloud Sync connected! Re-share QR codes to sync all phones.', 'success');
+        await syncFromCloud();
+      });
+      document.getElementById('btn-reset-cloud').addEventListener('click', () => {
+        state.cloudDbUrl = '';
+        cloudInput.value = '';
+        try { localStorage.removeItem(STORAGE_CLOUD_URL_KEY); } catch (e) {}
+        cloudModal.classList.add('hidden');
+        syncFromCloud();
+        showToast('Cloud URL cleared', 'info');
+      });
+
+      // Hash / Storage listeners
+      window.addEventListener('hashchange', () => {
+        state.view = resolveInitialRoute();
+        applyActiveView();
+      });
+      window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_ORDERS_KEY) {
+          applyIncomingOrders(getLocalOrders());
+        }
+      });
+
+      // Initial Render & Live Polling Loop
+      renderCategoryPills();
+      renderMenu();
+      applyActiveView();
+      syncFromCloud();
+
+      setInterval(() => {
+        syncFromCloud();
+        if (state.view === 'kitchen' && state.kitchenUnlocked) {
+          renderKitchenBoard();
+        }
+      }, 3500);
+    });
+  </script>
+</body>
+</html>
